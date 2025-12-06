@@ -1,46 +1,37 @@
 #ifndef AVL_HPP
 #define AVL_HPP
-#include "Street.hpp"
-#include "List.hpp"
+
+#include "Word.hpp"
+#include "AVLNode.hpp"
+#include <algorithm>
 
 class AVL {
-public:
-    struct Node {
-        int key;
-        List<Street*> list;
-        Node* left;
-        Node* right;
-        int height;
-        Node(int k);
-    };
-
-    AVL() : root(nullptr) {}
-    Node* searchNodePtr(int key);
-    void insert(int key);
-    void insert(int key,Street* s);
-    void remove(int key);
-    bool search(int key);
-    void insertStreet(int key, Street* s);
-    void printInOrder();
-
 private:
-    Node* root;
-
-    // Auxiliares
-    int height(Node* n);
-    int getBalance(Node* n);
-    int maxLocal(int a, int b);
-
-    Node* insertNode(Node* node, int key);
-    Node* removeNode(Node* node, int key);
-    bool searchNode(Node* node, int key);
-
-    // Rotações
-    Node* rightRotate(Node* y);
-    Node* leftRotate(Node* x);
-
-    // Print
-    void inOrder(Node* node);
+    AVLNode* root;
+    
+    // Métodos auxiliares privados
+    int height(AVLNode* node);
+    int balanceFactor(AVLNode* node);
+    AVLNode* rotateRight(AVLNode* y);
+    AVLNode* rotateLeft(AVLNode* x);
+    AVLNode* insert(AVLNode* node, Word* word);
+    AVLNode* search(AVLNode* node, const std::string& termo);
+    
+public:
+    // Construtor e destrutor
+    AVL();
+    ~AVL();
+    
+    // Métodos públicos
+    void inserir(Word* word);
+    Word* buscar(const std::string& termo);
+    
+    // Getter
+    AVLNode* getRoot();
+    
+private:
+    // Método auxiliar para destruir a árvore
+    void destroyTree(AVLNode* node);
 };
 
-#endif
+#endif // AVL_HPP

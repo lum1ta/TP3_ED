@@ -1,48 +1,50 @@
-#pragma once
+#ifndef ADDRESS_HPP
+#define ADDRESS_HPP
+
 #include <string>
 
 class Address {
 private:
-    std::string idAdd;
-    int idLog;
-    std::string typeLog;
-    std::string Log;
-    int num;
-    std::string neigh;
-    std::string region;
-    int CEP;
-    double Lat;
-    double Long;
-    
+    std::string idAdd;      // ID do endereço
+    int idLog;              // ID do logradouro
+    std::string typeLog;    // Tipo do logradouro
+    std::string Log;        // Nome do logradouro
+    int num;                // Número
+    std::string neigh;      // Bairro
+    std::string region;     // Região
+    int CEP;                // CEP
+    double Lat;             // Latitude
+    double Long;            // Longitude
+
 public:
-    // Construtor que corresponde ao uso no main
-    Address(std::string idAdd, int idLog, std::string typeLog,
-            std::string Log, int num, std::string neigh,
-            std::string region, int CEP, double Lat, double Long)
-        : idAdd(idAdd), idLog(idLog), typeLog(typeLog),
-          Log(Log), num(num), neigh(neigh), region(region),
-          CEP(CEP), Lat(Lat), Long(Long) {}
+    // Construtor
+    Address(const std::string& idAdd = "", int idLog = 0, 
+            const std::string& typeLog = "", const std::string& Log = "",
+            int num = 0, const std::string& neigh = "", 
+            const std::string& region = "", int CEP = 0,
+            double Lat = 0.0, double Long = 0.0);
     
-    // Construtor padrão
-    Address() = default;
+    // Getters
+    std::string getIdAdd() const;
+    int getIdLog() const;
+    std::string getTypeLog() const;
+    std::string getLog() const;
+    int getNum() const;
+    std::string getNeigh() const;
+    std::string getRegion() const;
+    int getCEP() const;
+    double getLat() const;
+    double getLong() const;
     
-    // Destrutor
-    ~Address() {}
+    // Setters
+    void setLat(double lat);
+    void setLong(double lon);
     
-    // Método de leitura (opcional)
-    void ReadAdd(std::string linha);
+    // Método para ler de string
+    void ReadAdd(const std::string& linha);
     
-    // Getters (APENAS UMA VERSÃO DE CADA)
-    std::string getidAdd() const { return idAdd; }
-    int getidLog() const { return idLog; }
-    std::string gettypeLog() const { return typeLog; }
-    std::string getLog() const { return Log; }
-    int getnum() const { return num; }
-    std::string getneigh() const { return neigh; }
-    std::string getregion() const { return region; }
-    int getCEP() const { return CEP; }
-    double getLat() const { return Lat; }
-    double getLong() const { return Long; }
-    
-    // REMOVA estas linhas duplicadas da linha 39-40
+    // Imprime informações
+    void printInfo() const;
 };
+
+#endif // ADDRESS_HPP

@@ -1,41 +1,30 @@
 #include "Word.hpp"
-#include <iostream>
 
-// Adiciona uma ocorrência do termo associando a um logradouro
-void Word::addOcc(std::string t, Street* log) {
-    // Caso ainda não exista termo definido neste objeto
-    if (termo.empty()) {
-        termo = t;
-    }
-
-    // Só adiciona se o termo bater
-    if (termo == t && log != nullptr) {
-        logra.push_back(log);
-    }
+Word::Word(const std::string& termo) : termo(termo) {
 }
 
-// Busca e imprime os logradouros associados ao termo
-void Word::searchLog(std::string t) {
-    if (termo != t) {
-        std::cout << "Termo \"" << t << "\" nao encontrado.\n";
-        return;
-    }
+std::string Word::getTermo() const { 
+    return termo; 
+}
 
-    if (logra.empty()) {
-        std::cout << "Nenhum logradouro associado ao termo \"" << t << "\".\n";
-        return;
-    }
+const ListaEncadeada<Street*>& Word::getLogradouros() const { 
+    return logradouros; 
+}
 
-    std::cout << "Logradouros contendo o termo \"" << t << "\":\n";
+void Word::adicionarLogradouro(Street* street) {
+    logradouros.insert(street);
+    // Ordena após inserir
+    logradouros.sort();
+}
 
-    // Percorre a lista
-    ListNode<Street*>* aux = logra.getHead();
+void Word::ordenarLogradouros() {
+    logradouros.sort();
+}
 
-    while (aux != nullptr) {
-        // Aqui você pode ajustar conforme o que Street expõe
-        // Exemplo:
-        // std::cout << aux->data->getNome() << std::endl;
+bool Word::operator<(const Word& other) const {
+    return termo < other.termo;
+}
 
-        aux = aux->next;
-    }
+bool Word::operator==(const Word& other) const {
+    return termo == other.termo;
 }
