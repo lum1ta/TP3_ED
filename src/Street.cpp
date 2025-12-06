@@ -1,5 +1,12 @@
 #include "Street.hpp"
-#include <cmath>      // para sqrt()
+#include <cmath>     // para sqrt()
+#include <string>
+
+//Inicializa cosntrutor
+Street::Street(int id,const std::string& nome)
+    :   idLog(id), NC(nome),
+        SomaLat(0), SomaLong(0),
+    qtdaddress(0), LatM(0), LongM(0) {}
 
 // Adiciona endereço: soma latitude e longitude e aumenta contador
 void Street::addAdd(Address adr) {

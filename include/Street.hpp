@@ -16,7 +16,9 @@ class Street{
         double LatM;
         double LongM;
     public:
-    //Soma as coordenadas e implementa contador
+        //Constructor
+        Street(int id, const std::string& nome);
+        //Soma as coordenadas e implementa contador
         void addAdd(Address adr);
         //Divide a soma pela quantidade
         void calcCenter();
