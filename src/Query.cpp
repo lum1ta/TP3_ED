@@ -1,5 +1,23 @@
 #include "Query.hpp"
 
+
+//Constructor
+Query::Query() : LatOrigin(0), LongOrigin(0), Maxresults(0) {}
+
+//Setters
+ void Query::setOrigin(double lat, double lon) {
+    LatOrigin = lat;
+    LongOrigin = lon;
+}
+
+void Query::setMaxResults(int m) {
+    Maxresults = m;
+}
+
+void Query::addTerm(const std::string& t) {
+    termo.push_back(t);
+}
+
 // Executa a query e gera o ranking
 void Query::process(AVL& indice) {
 
@@ -10,17 +28,26 @@ void Query::process(AVL& indice) {
 
     while (t) {
 
-        int key = std::stoi(t->data); // hash / chave
+        int key = std::stoi(t->data); // palavra -> chave/hash
 
         AVL::Node* no = indice.searchNodePtr(key);
-
-        if (!no) return; // termo não encontrado
+        if (!no) return; // algum termo não existe
 
         if (primeiro) {
-            resultadoFinal = no->list;
+
+            // CÓPIA SEGURA da lista da AVL
+            ListNode<Street*>* n = no->list.getHead();
+            while (n) {
+                resultadoFinal.push_back(n->data);
+                n = n->next;
+            }
+
             primeiro = false;
+
         } else {
+
             resultadoFinal = intersection(resultadoFinal, no->list);
+
         }
 
         t = t->next;
@@ -42,7 +69,7 @@ List<Street*> Query::intersection(List<Street*>& A, List<Street*>& B) {
 
         while (b) {
 
-            if (a->data == b->data) {   // comparação 
+            if (a->data == b->data) { // mesmo logradouro
                 inter.push_back(a->data);
                 break;
             }
@@ -56,7 +83,7 @@ List<Street*> Query::intersection(List<Street*>& A, List<Street*>& B) {
     return inter;
 }
 
-// Ordenação por distância
+// Ordenação por distância (Bubble Sort)
 void Query::OrderResults(List<Street*>& results) {
 
     if (results.empty()) return;
@@ -65,7 +92,6 @@ void Query::OrderResults(List<Street*>& results) {
 
     do {
         trocou = false;
-
         ListNode<Street*>* atual = results.getHead();
 
         while (atual && atual->next) {

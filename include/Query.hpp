@@ -13,12 +13,18 @@ private:
     int Maxresults;
 
 public:
-    void process(AVL& indice);
+    //Construtor
+    Query();
 
-private:
+    //Setters
+    void setOrigin(double lat,double lon);
+    void setMaxResults(int m);
+    void addTerm(const std::string& t);
+
+    //Functions
+    void process(AVL& indice);
     // Interseção entre listas de Street*
     List<Street*> intersection(List<Street*>& A, List<Street*>& B);
-
     // Ordena pelo menor valor de distância
     void OrderResults(List<Street*>& results);
 };

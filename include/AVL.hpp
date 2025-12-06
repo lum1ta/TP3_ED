@@ -17,8 +17,10 @@ public:
     AVL() : root(nullptr) {}
     Node* searchNodePtr(int key);
     void insert(int key);
+    void insert(int key,Street* s);
     void remove(int key);
     bool search(int key);
+    void insertStreet(int key, Street* s);
     void printInOrder();
 
 private:

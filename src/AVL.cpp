@@ -36,7 +36,18 @@ AVL::Node* AVL::searchNodePtr(int key) {
 
     return nullptr;
 }
+void AVL::insertStreet(int key, Street* s) {
+    Node* n = searchNodePtr(key);
+    if (n)
+        n->list.push_back(s);
+}
+void AVL::insert(int key, Street* s) {
+    // garante que o nó existe
+    root = insertNode(root, key);
 
+    // adiciona a rua à lista do nó
+    insertStreet(key, s);
+}
 
 //Rotations
 AVL::Node* AVL::rightRotate(Node* y) {
