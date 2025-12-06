@@ -1,113 +1,197 @@
 #include "Query.hpp"
+#include <iostream>
+#include <cmath>
+#include <cstring>
+#include <iomanip>
 
-
-//Constructor
-Query::Query() : LatOrigin(0), LongOrigin(0), Maxresults(0) {}
-
-//Setters
- void Query::setOrigin(double lat, double lon) {
-    LatOrigin = lat;
-    LongOrigin = lon;
+// Construtor
+Query::Query() : originLat(0.0), originLon(0.0), maxResults(10) {
 }
 
-void Query::setMaxResults(int m) {
-    Maxresults = m;
+// Setters
+void Query::setOrigin(double lat, double lon) {
+    originLat = lat;
+    originLon = lon;
 }
 
-void Query::addTerm(const std::string& t) {
-    termo.push_back(t);
+void Query::setMaxResults(int max) {
+    if (max > 0) maxResults = max;
 }
 
-// Executa a query e gera o ranking
-void Query::process(AVL& indice) {
+void Query::addTerm(const std::string& term) {
+    termos.insert(term);
+}
 
-    List<Street*> resultadoFinal;
-    bool primeiro = true;
+void Query::clearTerms() {
+    termos.clear();
+}
 
-    ListNode<std::string>* t = termo.getHead();
+// Getters
+double Query::getOriginLat() const { return originLat; }
+double Query::getOriginLon() const { return originLon; }
+int Query::getMaxResults() const { return maxResults; }
+int Query::getTermCount() const { return termos.getSize(); }
 
-    while (t) {
+void Query::toUpperString(std::string& str) {
+    for (char& c : str) {
+        if (c >= 'a' && c <= 'z') c = c - 'a' + 'A';
+    }
+}
 
-        int key = std::stoi(t->data); // palavra -> chave/hash
+double Query::calculateDistance(double lat1, double lon1, double lat2, double lon2) const {
+    double dx = lat2 - lat1;
+    double dy = lon2 - lon1;
+    return sqrt(dx * dx + dy * dy);
+}
 
-        AVL::Node* no = indice.searchNodePtr(key);
-        if (!no) return; // algum termo não existe
-
-        if (primeiro) {
-
-            // CÓPIA SEGURA da lista da AVL
-            ListNode<Street*>* n = no->list.getHead();
-            while (n) {
-                resultadoFinal.push_back(n->data);
-                n = n->next;
-            }
-
-            primeiro = false;
-
+// Interseção de listas ordenadas O(N+M)
+ListaEncadeada<Street*> Query::intersecaoListas(
+    const ListaEncadeada<Street*>& lista1, 
+    const ListaEncadeada<Street*>& lista2) {
+    
+    ListaEncadeada<Street*> resultado;
+    
+    auto it1 = lista1.getIterator();
+    auto it2 = lista2.getIterator();
+    
+    if (!it1.hasNext() || !it2.hasNext()) {
+        return resultado;
+    }
+    
+    Street* s1 = it1.next();
+    Street* s2 = it2.next();
+    
+    while (s1 != nullptr && s2 != nullptr) {
+        if (s1->getId() < s2->getId()) {
+            s1 = it1.hasNext() ? it1.next() : nullptr;
+        } else if (s1->getId() > s2->getId()) {
+            s2 = it2.hasNext() ? it2.next() : nullptr;
         } else {
-
-            resultadoFinal = intersection(resultadoFinal, no->list);
-
+            resultado.insert(s1);
+            s1 = it1.hasNext() ? it1.next() : nullptr;
+            s2 = it2.hasNext() ? it2.next() : nullptr;
         }
-
-        t = t->next;
     }
-
-    OrderResults(resultadoFinal);
+    
+    return resultado;
 }
 
-// Interseção entre duas listas
-List<Street*> Query::intersection(List<Street*>& A, List<Street*>& B) {
-
-    List<Street*> inter;
-
-    ListNode<Street*>* a = A.getHead();
-
-    while (a) {
-
-        ListNode<Street*>* b = B.getHead();
-
-        while (b) {
-
-            if (a->data == b->data) { // mesmo logradouro
-                inter.push_back(a->data);
-                break;
-            }
-
-            b = b->next;
+// Merge para ordenação estável (por distância, depois por ID se empate)
+void Query::merge(ResultadoQuery* arr, ResultadoQuery* temp, int left, int mid, int right) {
+    int i = left, j = mid + 1, k = left;
+    
+    while (i <= mid && j <= right) {
+        // Ordena por distância crescente
+        // Se distância igual, ordena por ID crescente
+        if (arr[i].distancia < arr[j].distancia ||
+            (arr[i].distancia == arr[j].distancia && arr[i].id < arr[j].id)) {
+            temp[k++] = arr[i++];
+        } else {
+            temp[k++] = arr[j++];
         }
-
-        a = a->next;
     }
-
-    return inter;
+    
+    while (i <= mid) {
+        temp[k++] = arr[i++];
+    }
+    
+    while (j <= right) {
+        temp[k++] = arr[j++];
+    }
+    
+    for (i = left; i <= right; i++) {
+        arr[i] = temp[i];
+    }
 }
 
-// Ordenação por distância (Bubble Sort)
-void Query::OrderResults(List<Street*>& results) {
+// MergeSort recursivo
+void Query::mergeSort(ResultadoQuery* arr, ResultadoQuery* temp, int left, int right) {
+    if (left < right) {
+        int mid = left + (right - left) / 2;
+        mergeSort(arr, temp, left, mid);
+        mergeSort(arr, temp, mid + 1, right);
+        merge(arr, temp, left, mid, right);
+    }
+}
 
-    if (results.empty()) return;
-
-    bool trocou;
-
-    do {
-        trocou = false;
-        ListNode<Street*>* atual = results.getHead();
-
-        while (atual && atual->next) {
-
-            double d1 = atual->data->getDist(LatOrigin, LongOrigin);
-            double d2 = atual->next->data->getDist(LatOrigin, LongOrigin);
-
-            if (d1 > d2) {
-                Street* tmp = atual->data;
-                atual->data = atual->next->data;
-                atual->next->data = tmp;
-                trocou = true;
-            }
-
-            atual = atual->next;
+// Método principal - processa consulta e retorna resultados ordenados por distância
+void Query::processarComResultados(AVL& indice, ResultadoQuery** resultadosPtr, int& numResultados) {
+    numResultados = 0;
+    *resultadosPtr = nullptr;
+    
+    if (termos.isEmpty()) {
+        return;
+    }
+    
+    // Obtém lista do primeiro termo
+    auto it = termos.getIterator();
+    std::string primeiroTermo = it.next();
+    
+    Word* palavra = indice.buscar(primeiroTermo);
+    if (!palavra) {
+        return;
+    }
+    
+    ListaEncadeada<Street*> listaResultados = palavra->getLogradouros();
+    
+    // Interseção com os demais termos
+    while (it.hasNext()) {
+        std::string termo = it.next();
+        
+        Word* proxPalavra = indice.buscar(termo);
+        if (!proxPalavra) {
+            return;
         }
-
-    } while (trocou);
+        
+        ListaEncadeada<Street*> intersecao = intersecaoListas(
+            listaResultados, proxPalavra->getLogradouros()
+        );
+        
+        listaResultados = intersecao;
+        
+        if (listaResultados.isEmpty()) {
+            return;
+        }
+    }
+    
+    // Conta resultados
+    int n = listaResultados.getSize();
+    if (n == 0) {
+        return;
+    }
+    
+    // Aloca array para resultados temporários
+    ResultadoQuery* resultadosTemp = new ResultadoQuery[n];
+    int idx = 0;
+    
+    // Preenche array com dados
+    auto rit = listaResultados.getIterator();
+    while (rit.hasNext()) {
+        Street* street = rit.next();
+        resultadosTemp[idx].id = street->getId();
+        resultadosTemp[idx].nome = street->getName();
+        resultadosTemp[idx].distancia = calculateDistance(
+            street->getCenterLat(), street->getCenterLon(),
+            originLat, originLon
+        );
+        idx++;
+    }
+    
+    // Ordena por distância usando MergeSort
+    if (n > 1) {
+        ResultadoQuery* tempArray = new ResultadoQuery[n];
+        mergeSort(resultadosTemp, tempArray, 0, n - 1);
+        delete[] tempArray;
+    }
+    
+    // Limita ao máximo de resultados
+    numResultados = (n < maxResults) ? n : maxResults;
+    
+    // Cria array final com resultados limitados
+    *resultadosPtr = new ResultadoQuery[numResultados];
+    for (int i = 0; i < numResultados; i++) {
+        (*resultadosPtr)[i] = resultadosTemp[i];
+    }
+    
+    delete[] resultadosTemp;
 }

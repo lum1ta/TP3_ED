@@ -1,15 +1,28 @@
-#pragma once
-#include "AVL.hpp"
-#include "List.hpp"
-//includes aqui que eu talvez precise
-//TAD MAIS IMPORTANTE!!Mapeia as palavras para os logradouros
+#ifndef WORD_HPP
+#define WORD_HPP
 
-class Word{
-    private:
-        //Atributos no nó da arvore 
-        std::string termo; //primary key
-        List<Street*> logra; //lista para os logardouros que contenham essa palavra
-    public:
-        void addOcc(std::string termo,Street* log); 
-        void searchLog(std::string termo); //lista para a palavra
+#include "ListaEncadeada.hpp"
+#include "Street.hpp"
+#include <string>
+
+class Word {
+private:
+    std::string termo;
+    ListaEncadeada<Street*> logradouros;
+    
+public:
+    Word(const std::string& termo = "");
+    
+    std::string getTermo() const;
+    const ListaEncadeada<Street*>& getLogradouros() const;
+    
+    void adicionarLogradouro(Street* street);
+    
+    // Ordena a lista por ID (para interseção eficiente)
+    void ordenarLogradouros();
+    
+    bool operator<(const Word& other) const;
+    bool operator==(const Word& other) const;
 };
+
+#endif // WORD_HPP

@@ -1,26 +1,46 @@
-#pragma once 
-#include "Address.hpp"
+#ifndef STREET_HPP
+#define STREET_HPP
 
+#include "Address.hpp"
+#include "ListaEncadeada.hpp"
 #include <string>
 
-class Street{
-    private:
-    //Primary key
-        int idLog;
-        std::string NC;
-        //Calculo da media
-        double SomaLat;
-        double SomaLong;
-        //Contador
-        int qtdaddress;
-        double LatM;
-        double LongM;
-    public:
-        //Constructor
-        Street(int id, const std::string& nome);
-        //Soma as coordenadas e implementa contador
-        void addAdd(Address adr);
-        //Divide a soma pela quantidade
-        void calcCenter();
-        double getDist(double LatOrigin, double LongOrigin);
+class Street {
+private:
+    int id;
+    std::string name;
+    ListaEncadeada<Address> addresses;
+    double sumLat;
+    double sumLon;
+    int addressCount;
+    double centerLat;
+    double centerLon;
+    
+public:
+    Street(int id = 0, const std::string& name = "");
+    
+    int getId() const;
+    std::string getName() const;
+    double getCenterLat() const;
+    double getCenterLon() const;
+    int getAddressCount() const;
+    
+    void setId(int newId);
+    void setName(const std::string& newName);
+    void setCenter(double lat, double lon);
+    
+    void addAdd(const Address& address);
+    void calculateCenter();
+    
+    // Calcula distância até um ponto
+    double getDistanceTo(double lat, double lon) const;
+    
+    void clearAddresses();
+    bool hasAddresses() const;
+    
+    bool operator<(const Street& other) const;
+    
+    void printInfo() const;
 };
+
+#endif // STREET_HPP

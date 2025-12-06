@@ -2,152 +2,189 @@
 #include <fstream>
 #include <string>
 #include <cmath>
+#include <cstdlib>
+#include <sstream>
 
 #include "AVL.hpp"
 #include "Street.hpp"
 #include "Address.hpp"
 #include "Query.hpp"
+#include "Word.hpp"
+#include "ListaEncadeada.hpp"
 
-// -----------------------------------------------------
-// Hash simples de string
-int hashWord(const std::string& s) {
-    int h = 0;
-    for (char c : s)
-        h = h * 31 + c;
-    return h < 0 ? -h : h;
+using namespace std;
+
+void toUpperString(string& str) {
+    for (size_t i = 0; i < str.length(); i++) {
+        if (str[i] >= 'a' && str[i] <= 'z') {
+            str[i] = str[i] - 'a' + 'A';
+        }
+    }
 }
 
-// -----------------------------------------------------
-// Converte string para double
-double toDouble(const std::string& s) {
-    return std::atof(s.c_str());
-}
-
-int toInt(const std::string& s) {
-    return std::atoi(s.c_str());
-}
-
-// -----------------------------------------------------
-// Parsing de linha CSV manual
-void parseLine(
-    const std::string& line,
-    std::string& idEnd,
-    int& idLog,
-    std::string& tipoLog,
-    std::string& log,
-    int& num,
-    std::string& bairro,
-    std::string& regiao,
-    int& cep,
-    double& lat,
-    double& lon
-) {
-    size_t start = 0;
-    size_t end;
-    std::string tmp;
-
-    auto nextField = [&](std::string& out) {
-        end = line.find(';', start);
-        if (end == std::string::npos) {
-            out = line.substr(start);
-            start = line.size();
-        } else {
-            out = line.substr(start, end - start);
+int main(int argc, char *argv[]) {
+    // Entrada
+    istream* input = &cin;
+    ifstream file;
+    
+    if (argc == 2) {
+        file.open(argv[1]);
+        if (!file.is_open()) {
+            cerr << "Erro ao abrir " << argv[1] << endl;
+            return 1;
+        }
+        input = &file;
+    }
+    
+    // 1. PROCESSAMENTO DOS ENDEREÇOS
+    
+    AVL indice;
+    const int MAX_STREETS = 200000;
+    Street* streets[MAX_STREETS] = {nullptr};
+    int maxId = 0;
+    
+    int N;
+    *input >> N;
+    input->ignore();
+    
+    // Ler N endereços
+    for (int i = 0; i < N; i++) {
+        string linha;
+        if (!getline(*input, linha)) break;
+        if (linha.empty()) continue;
+        
+        Address addr;
+        addr.ReadAdd(linha);
+        
+        int idLog = addr.getIdLog();
+        
+        // Criar/atualizar rua
+        if (idLog >= 0 && idLog < MAX_STREETS) {
+            if (!streets[idLog]) {
+                streets[idLog] = new Street(idLog, addr.getLog());
+                if (idLog > maxId) maxId = idLog;
+            }
+            streets[idLog]->addAdd(addr);
+            
+            // Indexar palavras do nome
+            string nome = addr.getLog();
+            size_t pos = 0;
+            
+            while (pos < nome.length()) {
+                size_t next = nome.find(' ', pos);
+                if (next == string::npos) next = nome.length();
+                
+                if (next > pos) {
+                    string palavra = nome.substr(pos, next - pos);
+                    toUpperString(palavra);
+                    
+                    Word* w = indice.buscar(palavra);
+                    if (!w) {
+                        w = new Word(palavra);
+                        indice.inserir(w);
+                    }
+                    w->adicionarLogradouro(streets[idLog]);
+                }
+                
+                pos = next + 1;
+            }
+        }
+    }
+    
+    // Calcular centros
+    for (int i = 0; i <= maxId; i++) {
+        if (streets[i]) {
+            streets[i]->calculateCenter();
+        }
+    }
+    
+    // 2. PROCESSAMENTO DAS CONSULTAS
+    
+    int M, R;
+    *input >> M >> R;
+    input->ignore();
+    
+    // Saída: número de consultas
+    cout << M << endl;
+    
+    for (int i = 0; i < M; i++) {
+        string linha;
+        if (!getline(*input, linha)) break;
+        if (linha.empty()) continue;
+        
+        // Parse consulta: Id;Termos;Lat;Lon
+        stringstream ss(linha);
+        string idStr, termosStr, latStr, lonStr;
+        
+        getline(ss, idStr, ';');
+        getline(ss, termosStr, ';');
+        getline(ss, latStr, ';');
+        getline(ss, lonStr);
+        
+        // Limpar \r
+        if (!lonStr.empty() && lonStr.back() == '\r') lonStr.pop_back();
+        
+        int idConsulta = atoi(idStr.c_str());
+        double lat = atof(latStr.c_str());
+        double lon = atof(lonStr.c_str());
+        
+        // Separar termos (sem vector, usando array)
+        string termosArray[20]; // Máximo de 20 termos por consulta
+        int numTermos = 0;
+        
+        // Parsing manual
+        size_t start = 0;
+        size_t end = 0;
+        
+        while (numTermos < 20 && start < termosStr.length()) {
+            // Pula espaços
+            while (start < termosStr.length() && termosStr[start] == ' ') start++;
+            if (start >= termosStr.length()) break;
+            
+            // Encontra próximo espaço
+            end = termosStr.find(' ', start);
+            if (end == string::npos) end = termosStr.length();
+            
+            // Extrai termo
+            termosArray[numTermos] = termosStr.substr(start, end - start);
+            toUpperString(termosArray[numTermos]);
+            numTermos++;
+            
             start = end + 1;
         }
-    };
-
-    nextField(idEnd);
-    nextField(tmp); idLog = toInt(tmp);
-    nextField(tipoLog);
-    nextField(log);
-    nextField(tmp); num = toInt(tmp);
-    nextField(bairro);
-    nextField(regiao);
-    nextField(tmp); cep = toInt(tmp);
-    nextField(tmp); lat = toDouble(tmp);
-    
-    if (start < line.size())
-        lon = toDouble(line.substr(start));
-    else
-        lon = 0.0;
-}
-
-// -----------------------------------------------------
-int main() {
-    std::ifstream file("input.txt");
-    if (!file.is_open()) {
-        std::cerr << "Erro ao abrir arquivo\n";
-        return 1;
-    }
-
-    AVL indice;
-    int N;
-    file >> N;
-    file.ignore(); // quebra de linha
-
-    // -----------------------------
-    // Leitura do arquivo
-    for (int i = 0; i < N; i++) {
-        std::string line;
-        std::getline(file, line);
-
-        std::string idEnd, tipoLog, log, bairro, regiao;
-        int idLog, num, cep;
-        double lat, lon;
-
-        parseLine(line, idEnd, idLog, tipoLog, log, num, bairro, regiao, cep, lat, lon);
-
-        // Criar endereço - AJUSTADO para corresponder ao construtor de Address
-        Address adr(
-            idEnd,           // idAdd
-            idLog,           // idLog  
-            tipoLog,         // typeLog
-            log,             // Log
-            num,             // num
-            bairro,          // neigh
-            regiao,          // region
-            cep,             // CEP
-            lat,             // Lat
-            lon              // Long
-        );
-
-        // Criar / atualizar logradouro
-        Street* street = new Street(idLog, log);
-        street->addAdd(adr);
-
-        // Separar palavras do nome da rua - CORRIGIDO
-        size_t pos = 0;  // Mudei para size_t
-        while (true) {
-            size_t next = log.find(' ', pos);  // Mudei para size_t
-            std::string palavra = log.substr(pos, next - pos);
-            
-            if (!palavra.empty()) {
-                int key = hashWord(palavra);
-                // USA APENAS ESTA LINHA (a função pública que faz tudo)
-                indice.insert(key, street);
-                
-                // REMOVA estas linhas:
-                // indice.insert(key);
-                // indice.insertStreet(key, street);
-            }
-            
-            if (next == std::string::npos)
-                break;
-            pos = next + 1;
+        
+        // Criar query
+        Query q;
+        q.setOrigin(lat, lon);
+        q.setMaxResults(R);
+        
+        for (int j = 0; j < numTermos; j++) {
+            q.addTerm(termosArray[j]);
+        }
+        
+        // Executar consulta - CORREÇÃO AQUI
+        ResultadoQuery* resultados = nullptr;
+        int numResultados = 0;
+        
+        q.processarComResultados(indice, &resultados, numResultados);
+        
+        // Saída no formato especificado
+        cout << idConsulta << ";" << numResultados << endl;
+        for (int j = 0; j < numResultados; j++) {
+            cout << resultados[j].id << ";" << resultados[j].nome << endl;
+        }
+        
+        // Liberar memória
+        if (resultados != nullptr) {
+            delete[] resultados;
         }
     }
-
-    file.close();
-
-    // -----------------------------
-    // Query
-    Query q;
-    q.setOrigin(-19.92, -43.94); // exemplo
-    q.setMaxResults(10);
-    q.addTerm("RUA");
-    q.addTerm("AFONSO");
-    q.process(indice);
-
+    
+    // Limpeza
+    if (file.is_open()) file.close();
+    for (int i = 0; i <= maxId; i++) {
+        if (streets[i]) delete streets[i];
+    }
+    
     return 0;
 }

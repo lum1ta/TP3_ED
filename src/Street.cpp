@@ -1,31 +1,81 @@
 #include "Street.hpp"
-#include <cmath>     // para sqrt()
-#include <string>
+#include <iostream>
+#include <cmath>
 
-//Inicializa cosntrutor
-Street::Street(int id,const std::string& nome)
-    :   idLog(id), NC(nome),
-        SomaLat(0), SomaLong(0),
-    qtdaddress(0), LatM(0), LongM(0) {}
-
-// Adiciona endereço: soma latitude e longitude e aumenta contador
-void Street::addAdd(Address adr) {
-    SomaLat  += adr.getLat();
-    SomaLong += adr.getLong();
-    qtdaddress++;
+// Construtor
+Street::Street(int id, const std::string& name) 
+    : id(id), name(name), sumLat(0.0), sumLon(0.0), 
+      addressCount(0), centerLat(0.0), centerLon(0.0) {
 }
 
-// Calcula a média das coordenadas
-void Street::calcCenter() {
-    if (qtdaddress > 0) {
-        LatM  = SomaLat  / qtdaddress;
-        LongM = SomaLong / qtdaddress;
+// Getters
+int Street::getId() const { return id; }
+std::string Street::getName() const { return name; }
+double Street::getCenterLat() const { return centerLat; }
+double Street::getCenterLon() const { return centerLon; }
+int Street::getAddressCount() const { return addressCount; }
+
+// Setters
+void Street::setId(int newId) { id = newId; }
+void Street::setName(const std::string& newName) { name = newName; }
+void Street::setCenter(double lat, double lon) { 
+    centerLat = lat; 
+    centerLon = lon; 
+}
+
+// Adiciona um endereço à rua - MANTIDO COMO addAdd
+void Street::addAdd(const Address& address) {
+    addresses.insert(address);
+    sumLat += address.getLat();
+    sumLon += address.getLong();
+    addressCount++;
+    calculateCenter(); // Recalcula centro automaticamente
+}
+
+// Calcula o centro de gravidade - MANTIDO COMO calculateCenter
+void Street::calculateCenter() {
+    if (addressCount == 0) {
+        centerLat = 0.0;
+        centerLon = 0.0;
+        return;
     }
+    
+    centerLat = sumLat / addressCount;
+    centerLon = sumLon / addressCount;
 }
 
-// Distância euclidiana simples até o centro calculado
-double Street::getDist(double LatOrigin, double LongOrigin) {
-    double dx = LatOrigin - LatM;
-    double dy = LongOrigin - LongM;
-    return std::sqrt(dx * dx + dy * dy);
+// Calcula distância até um ponto
+double Street::getDistanceTo(double lat, double lon) const {
+    double dx = centerLat - lat;
+    double dy = centerLon - lon;
+    return sqrt(dx * dx + dy * dy);
+}
+
+// Remove todos os endereços
+void Street::clearAddresses() {
+    addresses.clear();
+    sumLat = 0.0;
+    sumLon = 0.0;
+    addressCount = 0;
+    centerLat = 0.0;
+    centerLon = 0.0;
+}
+
+// Verifica se a rua tem endereços
+bool Street::hasAddresses() const { 
+    return addressCount > 0; 
+}
+
+// Operador < para ordenação
+bool Street::operator<(const Street& other) const {
+    return id < other.id;
+}
+
+// Imprime informações da rua
+void Street::printInfo() const {
+    std::cout << "Street ID: " << id 
+              << ", Name: " << name 
+              << ", Addresses: " << addressCount
+              << ", Center: (" << centerLat << ", " << centerLon << ")"
+              << std::endl;
 }
