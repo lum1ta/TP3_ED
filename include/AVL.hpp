@@ -1,19 +1,21 @@
 #ifndef AVL_HPP
 #define AVL_HPP
+#include "Street.hpp"
+#include "List.hpp"
 
 class AVL {
 public:
     struct Node {
         int key;
+        List<Street*> list;
         Node* left;
         Node* right;
         int height;
-
         Node(int k);
     };
 
     AVL() : root(nullptr) {}
-
+    Node* searchNodePtr(int key);
     void insert(int key);
     void remove(int key);
     bool search(int key);

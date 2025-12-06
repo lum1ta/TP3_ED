@@ -1,6 +1,4 @@
-#define ADDRESS.H
-#ifndef ADDRESS.H
-
+#pragma once
 #include <string>
 
 class Address{
@@ -20,14 +18,14 @@ class Address{
     public:
         //Constructor
         Address();
-        ~Addres();
+        ~Address();
 
         //Ler os dados de entrada
-        void ReadAdd(string linha);
+        void ReadAdd(std::string linha);
 
         //Getters
-        std::string getidLog();
-        id getidLog();
+        int getidLog();
+        std::string getidAdd();
         std::string gettypeLog();
         std::string getLog();
         int getnum();
@@ -36,5 +34,4 @@ class Address{
         int getCEP();
         double getLat();
         double getLong();
-}
-#endif
+};
