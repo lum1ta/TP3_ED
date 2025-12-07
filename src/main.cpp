@@ -12,11 +12,8 @@
 #include "Word.hpp"
 #include "ListaEncadeada.hpp"
 
-using namespace std;
-
-
 // Função auxiliar para converter string para maiúsculo
-void toUpperString(string& str) {
+void toUpperString(std::string& str) {
     for (size_t i = 0; i < str.length(); i++) {
         if (str[i] >= 'a' && str[i] <= 'z') {
             str[i] = str[i] - 'a' + 'A';
@@ -24,10 +21,7 @@ void toUpperString(string& str) {
     }
 }
 
-// ==========================================
-// Nova Função Auxiliar: Buscar Rua na Lista
-// ==========================================
-// Como não usamos mais vetor, precisamos percorrer a lista para achar a rua pelo ID
+// precisamos percorrer a lista para achar a rua pelo ID
 Street* buscarRuaPorId(const ListaEncadeada<Street*>& lista, int id) {
     auto it = lista.getIterator();
     while (it.hasNext()) {
@@ -41,13 +35,13 @@ Street* buscarRuaPorId(const ListaEncadeada<Street*>& lista, int id) {
 
 int main(int argc, char *argv[]) {
     // Entrada
-    istream* input = &cin;
-    ifstream file;
+    std::istream* input = &std::cin;
+    std::ifstream file;
     
     if (argc == 2) {
         file.open(argv[1]);
         if (!file.is_open()) {
-            cerr << "Erro ao abrir " << argv[1] << endl;
+            std::cerr << "Erro ao abrir " << argv[1] << std::endl;
             return 1;
         }
         input = &file;
@@ -57,11 +51,7 @@ int main(int argc, char *argv[]) {
     
     AVL indice;
     
-    // SUBSTITUIÇÃO: Array fixo removido
-    // const int MAX_STREETS = 200000;
-    // Street* streets[MAX_STREETS] = {nullptr};
-    
-    // NOVA ESTRUTURA: Lista Encadeada para armazenar as ruas
+
     ListaEncadeada<Street*> listaRuas;
     
     int N;
@@ -70,7 +60,7 @@ int main(int argc, char *argv[]) {
     
     // Ler N endereços
     for (int i = 0; i < N; i++) {
-        string linha;
+        std::string linha;
         if (!getline(*input, linha)) break;
         if (linha.empty()) continue;
         
@@ -92,15 +82,15 @@ int main(int argc, char *argv[]) {
         ruaAtual->addAdd(addr);
             
         // Indexar palavras do nome (Lógica mantida, apenas usando ruaAtual)
-        string nome = addr.getLog();
+        std::string nome = addr.getLog();
         size_t pos = 0;
         
         while (pos < nome.length()) {
             size_t next = nome.find(' ', pos);
-            if (next == string::npos) next = nome.length();
+            if (next == std::string::npos) next = nome.length();
             
             if (next > pos) {
-                string palavra = nome.substr(pos, next - pos);
+                std::string palavra = nome.substr(pos, next - pos);
                 toUpperString(palavra);
                 
                 Word* w = indice.buscar(palavra);
@@ -117,7 +107,7 @@ int main(int argc, char *argv[]) {
     }
     
     // Calcular centros
-    // Agora iteramos sobre a lista em vez do array
+    // Agora itera sobre a lista em vez do array
     auto itRuas = listaRuas.getIterator();
     while (itRuas.hasNext()) {
         itRuas.next()->calculateCenter();
@@ -130,16 +120,16 @@ int main(int argc, char *argv[]) {
     input->ignore();
     
     // Saída: número de consultas
-    cout << M << endl;
+    std::cout << M << std::endl;
     
     for (int i = 0; i < M; i++) {
-        string linha;
+        std::string linha;
         if (!getline(*input, linha)) break;
         if (linha.empty()) continue;
         
         // Parse consulta: Id;Termos;Lat;Lon
-        stringstream ss(linha);
-        string idStr, termosStr, latStr, lonStr;
+        std::stringstream ss(linha);
+        std::string idStr, termosStr, latStr, lonStr;
         
         getline(ss, idStr, ';');
         getline(ss, termosStr, ';');
@@ -152,7 +142,7 @@ int main(int argc, char *argv[]) {
         double lat = atof(latStr.c_str());
         double lon = atof(lonStr.c_str());
         
-        string termosArray[20]; 
+        std::string termosArray[20]; 
         int numTermos = 0;
         
         size_t start = 0;
@@ -163,7 +153,7 @@ int main(int argc, char *argv[]) {
             if (start >= termosStr.length()) break;
             
             end = termosStr.find(' ', start);
-            if (end == string::npos) end = termosStr.length();
+            if (end == std::string::npos) end = termosStr.length();
             
             termosArray[numTermos] = termosStr.substr(start, end - start);
             toUpperString(termosArray[numTermos]);
@@ -185,9 +175,9 @@ int main(int argc, char *argv[]) {
         
         q.processarComResultados(indice, &resultados, numResultados);
         
-        cout << idConsulta << ";" << numResultados << endl;
+        std::cout << idConsulta << ";" << numResultados << std::endl;
         for (int j = 0; j < numResultados; j++) {
-            cout << resultados[j].id << ";" << resultados[j].nome << endl;
+            std::cout << resultados[j].id << ";" << resultados[j].nome << std::endl;
         }
         
         if (resultados != nullptr) {
@@ -199,8 +189,6 @@ int main(int argc, char *argv[]) {
     if (file.is_open()) file.close();
     
     // DELETAR OS OBJETOS STREET
-    // A ListaEncadeada deleta os NÓS, mas não o conteúdo (Street*) se for ponteiro.
-    // Precisamos deletar manualmente os objetos criados com 'new Street'
     auto itLimpeza = listaRuas.getIterator();
     while (itLimpeza.hasNext()) {
         Street* s = itLimpeza.next();
