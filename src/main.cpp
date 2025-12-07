@@ -14,12 +14,29 @@
 
 using namespace std;
 
+
+// Função auxiliar para converter string para maiúsculo
 void toUpperString(string& str) {
     for (size_t i = 0; i < str.length(); i++) {
         if (str[i] >= 'a' && str[i] <= 'z') {
             str[i] = str[i] - 'a' + 'A';
         }
     }
+}
+
+// ==========================================
+// Nova Função Auxiliar: Buscar Rua na Lista
+// ==========================================
+// Como não usamos mais vetor, precisamos percorrer a lista para achar a rua pelo ID
+Street* buscarRuaPorId(const ListaEncadeada<Street*>& lista, int id) {
+    auto it = lista.getIterator();
+    while (it.hasNext()) {
+        Street* s = it.next();
+        if (s->getId() == id) {
+            return s;
+        }
+    }
+    return nullptr;
 }
 
 int main(int argc, char *argv[]) {
@@ -39,9 +56,13 @@ int main(int argc, char *argv[]) {
     // 1. PROCESSAMENTO DOS ENDEREÇOS
     
     AVL indice;
-    const int MAX_STREETS = 200000;
-    Street* streets[MAX_STREETS] = {nullptr};
-    int maxId = 0;
+    
+    // SUBSTITUIÇÃO: Array fixo removido
+    // const int MAX_STREETS = 200000;
+    // Street* streets[MAX_STREETS] = {nullptr};
+    
+    // NOVA ESTRUTURA: Lista Encadeada para armazenar as ruas
+    ListaEncadeada<Street*> listaRuas;
     
     int N;
     *input >> N;
@@ -58,44 +79,48 @@ int main(int argc, char *argv[]) {
         
         int idLog = addr.getIdLog();
         
-        // Criar/atualizar rua
-        if (idLog >= 0 && idLog < MAX_STREETS) {
-            if (!streets[idLog]) {
-                streets[idLog] = new Street(idLog, addr.getLog());
-                if (idLog > maxId) maxId = idLog;
-            }
-            streets[idLog]->addAdd(addr);
+        // Verifica se a rua já existe na lista (busca linear)
+        Street* ruaAtual = buscarRuaPorId(listaRuas, idLog);
+        
+        // Se não existe, cria e insere
+        if (ruaAtual == nullptr) {
+            ruaAtual = new Street(idLog, addr.getLog());
+            listaRuas.insert(ruaAtual);
+        }
+        
+        // Adiciona o endereço à rua
+        ruaAtual->addAdd(addr);
             
-            // Indexar palavras do nome
-            string nome = addr.getLog();
-            size_t pos = 0;
+        // Indexar palavras do nome (Lógica mantida, apenas usando ruaAtual)
+        string nome = addr.getLog();
+        size_t pos = 0;
+        
+        while (pos < nome.length()) {
+            size_t next = nome.find(' ', pos);
+            if (next == string::npos) next = nome.length();
             
-            while (pos < nome.length()) {
-                size_t next = nome.find(' ', pos);
-                if (next == string::npos) next = nome.length();
+            if (next > pos) {
+                string palavra = nome.substr(pos, next - pos);
+                toUpperString(palavra);
                 
-                if (next > pos) {
-                    string palavra = nome.substr(pos, next - pos);
-                    toUpperString(palavra);
-                    
-                    Word* w = indice.buscar(palavra);
-                    if (!w) {
-                        w = new Word(palavra);
-                        indice.inserir(w);
-                    }
-                    w->adicionarLogradouro(streets[idLog]);
+                Word* w = indice.buscar(palavra);
+                if (!w) {
+                    w = new Word(palavra);
+                    indice.inserir(w);
                 }
-                
-                pos = next + 1;
+                // Adiciona o ponteiro da rua atual à palavra
+                w->adicionarLogradouro(ruaAtual);
             }
+            
+            pos = next + 1;
         }
     }
     
     // Calcular centros
-    for (int i = 0; i <= maxId; i++) {
-        if (streets[i]) {
-            streets[i]->calculateCenter();
-        }
+    // Agora iteramos sobre a lista em vez do array
+    auto itRuas = listaRuas.getIterator();
+    while (itRuas.hasNext()) {
+        itRuas.next()->calculateCenter();
     }
     
     // 2. PROCESSAMENTO DAS CONSULTAS
@@ -121,31 +146,25 @@ int main(int argc, char *argv[]) {
         getline(ss, latStr, ';');
         getline(ss, lonStr);
         
-        // Limpar \r
         if (!lonStr.empty() && lonStr.back() == '\r') lonStr.pop_back();
         
         int idConsulta = atoi(idStr.c_str());
         double lat = atof(latStr.c_str());
         double lon = atof(lonStr.c_str());
         
-        // Separar termos (sem vector, usando array)
-        string termosArray[20]; // Máximo de 20 termos por consulta
+        string termosArray[20]; 
         int numTermos = 0;
         
-        // Parsing manual
         size_t start = 0;
         size_t end = 0;
         
         while (numTermos < 20 && start < termosStr.length()) {
-            // Pula espaços
             while (start < termosStr.length() && termosStr[start] == ' ') start++;
             if (start >= termosStr.length()) break;
             
-            // Encontra próximo espaço
             end = termosStr.find(' ', start);
             if (end == string::npos) end = termosStr.length();
             
-            // Extrai termo
             termosArray[numTermos] = termosStr.substr(start, end - start);
             toUpperString(termosArray[numTermos]);
             numTermos++;
@@ -153,7 +172,6 @@ int main(int argc, char *argv[]) {
             start = end + 1;
         }
         
-        // Criar query
         Query q;
         q.setOrigin(lat, lon);
         q.setMaxResults(R);
@@ -162,29 +180,33 @@ int main(int argc, char *argv[]) {
             q.addTerm(termosArray[j]);
         }
         
-        // Executar consulta - CORREÇÃO AQUI
         ResultadoQuery* resultados = nullptr;
         int numResultados = 0;
         
         q.processarComResultados(indice, &resultados, numResultados);
         
-        // Saída no formato especificado
         cout << idConsulta << ";" << numResultados << endl;
         for (int j = 0; j < numResultados; j++) {
             cout << resultados[j].id << ";" << resultados[j].nome << endl;
         }
         
-        // Liberar memória
         if (resultados != nullptr) {
             delete[] resultados;
         }
     }
     
-    // Limpeza
+    // Limpeza de Memória
     if (file.is_open()) file.close();
-    for (int i = 0; i <= maxId; i++) {
-        if (streets[i]) delete streets[i];
+    
+    // DELETAR OS OBJETOS STREET
+    // A ListaEncadeada deleta os NÓS, mas não o conteúdo (Street*) se for ponteiro.
+    // Precisamos deletar manualmente os objetos criados com 'new Street'
+    auto itLimpeza = listaRuas.getIterator();
+    while (itLimpeza.hasNext()) {
+        Street* s = itLimpeza.next();
+        delete s;
     }
+    // A listaRuas será destruída automaticamente ao sair do escopo
     
     return 0;
 }
