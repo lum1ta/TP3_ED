@@ -1,24 +1,32 @@
 #include "Word.hpp"
-
-Word::Word(const std::string& termo) : termo(termo) {
+#include "ListaEncadeada.hpp"
+template<>
+bool ListaEncadeada<Street*>::lessOrEqual(Street* const& a, Street* const& b) {
+    return a->getId() <= b->getId();
 }
 
-std::string Word::getTermo() const { 
-    return termo; 
+
+Word::Word(const std::string& termo) : termo(termo) {}
+
+std::string Word::getTermo() const {
+    return termo;
 }
 
-const ListaEncadeada<Street*>& Word::getLogradouros() const { 
-    return logradouros; 
+const ListaEncadeada<Street*>& Word::getLogradouros() const {
+    return logradouros;
 }
 
 void Word::adicionarLogradouro(Street* street) {
-    logradouros.insert(street);
-    // Ordena após inserir
-    logradouros.sort();
-}
+    auto it = logradouros.getIterator();
+    while (it.hasNext()) {
+        Street* s = it.next();
+        if (s->getId() == street->getId()) {
+            return; // já existe, não insere
+        }
+    }
 
-void Word::ordenarLogradouros() {
-    logradouros.sort();
+    logradouros.insert(street);
+    logradouros.sort();  // mantém ordenado por ID
 }
 
 bool Word::operator<(const Word& other) const {
